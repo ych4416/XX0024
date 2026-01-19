@@ -1,0 +1,15 @@
+#include BASIC.inc
+;
+        MEMORY  1024
+        ORG     5
+START   MOVEM   HWADR,CURSOR
+LOOP    LINDR   CURSOR,WORK
+        JCMP    WORK,ZERO,HWEND,HWEND,HW1
+HW1     PUTCH   WORK
+        INC     CURSOR
+        JMP     LOOP
+HWEND   HALT
+WORK    DS      1
+CURSOR  DS      1
+HELLO   DCS     'HELLO WORLD\r\n\0'
+HWADR   DC      HELLO

@@ -1,0 +1,140 @@
+;
+;           VTL.asm  - Extended VTL in RSSB
+;
+#include    BASIC.inc
+;
+JCMP        DEFMACRO    D0,D1,LT,EQ,GT
+            NEG         D1,JCMPW0
+            ACCM        JCMPW0,D0
+            JNEG        JCMPW0,LT
+            NEG         JCMPW0,JCMPW1
+            JNEG        JCMPW1,GT
+            JMP         EQ
+JCMPW0      DS          1
+JCMPW1      DS          1
+            ENDMACRO
+;
+GOSUB       DEFMACRO    ADDR
+            PUSH        GOSUBA
+            JMP         ADDR
+GOSUBA      DC          GOSUB9
+GOSUB9      RSSB        ACC
+            ENDMACRO
+;
+RETURN      DEFMACRO
+            POP         RETURNA,SP
+            JPIND       RETURNA
+RETURNA     DS          1
+            ENDMACRO
+;
+            MEMORY  4096
+            ORG     5
+RESETP      MOVEM SPTOP, SP
+            JMP START
+;
+;       SYSTEM STACK DEFINITION
+;
+SPTOP       DC      STACKTOP
+SP          DS      1               ; GLOBAL Stack Pointer
+;
+;
+START       RSSB    ACC
+            GOSUB   SUBROUTINE0
+            HALT
+;
+SUBROUTINE0 RSSB    ACC
+            PUSH    STRING0ADR,SP
+            GOSUB   PUTLINE
+            RETURN
+;           
+STACKTOP    DS      256
+            ORG     1000
+STRING0ADR  DC      STRING0
+STRING0     DC      14,14,0,'HELLO WORLD\r\n\0'
+            ORG     1100
+STRING1ADR  DC      STRING1
+STRING1     DC      80
+            DS      80
+;
+;
+STRALENOFS  DC         0
+STRCLENOFS  DC         1
+STRCSOROFS  DC         2
+STRHEADOFS  DC         3
+;       SUBROUTINES
+;
+;
+;       CLEARSTR        SET STR TO EMPTY STRING
+;                       STAY ALEN (RESERVED LENGTH OF STR)
+;                       SET CLEN AND CURSOR TO 0
+;                       SET 0 TO HEAD OF STRING BODY
+;                       NOT RECURSIVE
+;
+CLEARSTR    POP         CLEARSTRW99,SP              ; POP RETURN ADDRESS
+            POP         CLEARSTRW0, SP               ; POP TARGET ADDRESS
+            ACCM        CLEARSTRW0, STRCLENOFS      ; POINT TO CLEN
+            SINDR       CLEARSTRC0, CLEARSTRW0      ; CLEN TO 0
+            INC         CLEARSTRW0                  ; PONTTO CUROSR 
+            SINDR       CLEARSTRC0, CLEARSTRW0      ; CURSOR TO 0
+            INC         CLEARSTRW0                  ; POINT TO HEAD OF STR CONTENT
+            SINDR       CLEARSTRC0, CLEARSTRW0      ; STR[0] TO 0
+            JPIND       CLEARSTRW99                 ; RETURN FROM CLEARSTRW0
+CLEARSTRW0  DS          1
+CLEARSTRC0  DC          0
+CLEARSTRW99 DS          1
+;
+;           CURCHSTR - PICK CHAR AND CURSOR++
+;
+CURCHSTR    POP         CURCHSTRW99, SP             ; POP RETURN ADDRESS
+            POP         CURCHSTRW1, SP              ; POP ADDRESS TO GOT CHAR
+            POP         CURCHSTRW0, SP              ; POP TARGET STR ADDRESS
+            SINDR       ZERO, CURCHSTRW1            ; INIT RESULT TO 0
+            MOVEM       CURCHSTRW0, CURCHSTRW2      ; W2 TO ADDRESS OF CLEN
+            INC         CURCHSTRW2
+            MOVEM       CURCHSTRW2, CURCHSTRW3      ; W3 TO ADDRESS OF CUROSR
+            INC         CURCHSTRW3
+            LINDR       CURCHSTRW2, CURCHSTRW4      ; W4 TO VALUE OF CLEN
+            LINDR       CURCHSTRW3, CURCHSTRW5      ; W5 TO VALUE OF CURSOR
+CURCHSTR0   JCMP        CURCHSTRW5, CURCHSTRW4, CURCHSTR1, CURCHSTR9, CURCHSTR9
+CURCHSTR1   MOVEM       CURCHSTRW0, CURCHSTRW7      ; W7 = STR + HEADOFFSET + CURSOR
+            ACCM        CURCHSTRW7, STRHEADOFS      ; W7 += HEADOFFSET
+            ACCM        CURCHSTRW7, CURCHSTRW5      ; W7 += CURSOR
+            LINDR       CURCHSTRW7, CURCHSTRW6      ; GET CHAR ON CURSOR
+            SINDR       CURCHSTRW6, CURCHSTRW1      ; PUT CHAR TO RESULT
+            INC         CURCHSTRW5                  ; CURSOR++
+            SINDR       CURCHSTRW5, CURCHSTRW3      ; UPDATE CURSOR
+CURCHSTR9   JPIND       CURCHSTRW99                 ; RETURN FROM CURCHSTR
+CURCHSTRW0  DS          1                           ; TARGET STR ADDRESS
+CURCHSTRW1  DS          1                           ; RESULT ADDRESS
+CURCHSTRW2  DS          1                           ; ADDRESS OF CLEN
+CURCHSTRW3  DS          1                           ; ADDRESS OF CURSOR
+CURCHSTRW4  DS          1                           ; VALUE OF CLEN
+CURCHSTRW5  DS          1                           ; VALUE OF CURSOR
+CURCHSTRW6  DS          1                           ; CHAR TO BE READ
+CURCHSTRW7  DS          1                           ; ADDRESS TO BE READ
+CURCHSTRW99 DS          1                           ; RETURN ADDRESS
+;
+;
+; ------    LINE I/O
+;
+PUTLINE     POP         PUTLINEW3,SP            ; POP RETURN ADDRESS
+            POP         PUTLINEW0,SP            ; POP ARG=STR TO PUTLINE
+PUTLINE1    PUSH        PUTLINEW0,SP
+            PUSH        PUTLINEW1A,SP
+            GOSUB       CURCHSTR
+            NEG         PUTLINEW1,PUTLINEW2
+            JNEG        PUTLINEW2,PUTLINE2      ; IF CURCHAR > 0 THEN PUTCH IT
+            JPIND       PUTLINEW3               ; RETURN WHEN CURCHAR <= 0 (EOS)
+PUTLINE2    PUTCH       PUTLINEW1
+            JMP         PUTLINE1
+PUTLINEW0   DS          1
+PUTLINEW1   DS          1
+PUTLINEW2   DS          1
+PUTLINEW3   DS          1
+PUTLINEW0A  DC          PUTLINEW0
+PUTLINEW1A  DC          PUTLINEW1
+;
+;
+;
+;           END OF FILE
+;
