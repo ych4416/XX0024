@@ -11,5 +11,5 @@ HW1     PUTCH   WORK
 HWEND   HALT
 WORK    DS      1
 CURSOR  DS      1
-HELLO   DCS     'HELLO WORLD\r\n\0'
+HELLO   DC      'HELLO WORLD\r\n\0'
 HWADR   DC      HELLO
