@@ -295,7 +295,23 @@
     //
     //   MAINLINE
     //
+        var monitorGrammer = ' \n\
+   cmd = quitcmd / asmcmd / runcmd / dbgcmd \n\
+   asmcmd = "asm" eol { return AsmCommand; }\n\
+   runcmd = "run" eol { return RunCommand; }\n\
+   dbgcmd = "dbg" eol { return DebugCommand; }\n\
+   quitcmd = "quit" eol {window.alert("OK to quit"); return function(){}; }\n\
+   dlim = $[ ,\t] \n\
+   dlims = $[ ,\t]+ \n\
+   eol = $("\\r\\n") / $("\\n") / $("\\r") \n\
+   ';
     var terminalUI = new TerminalUI();
+    try {
+    var cllParser = peggy.generate(monitorGrammer);
+    } catch(e){
+        window.alert(e.message);
+        console.log(e.message);
+    }
     (async function commandLineLoop() {
         // Reset2DWorld();
         /* Install2DObj("text", SvgRoot, "青い TEXT",
@@ -311,19 +327,27 @@
         while (cmd !== "quit\r") {
             await terminalUI.write("> ");
             cmd = await terminalUI.getLine();
+            var result = ParseIt(cmd,cllParser,"cmd");
+            await result();
             if (cmd === "quit\r") break;
-            if (cmd === "run\r") {
-                await RunProgram(editor.getValue());
-                continue;
-            }
-            if (cmd === "debug\r") {
-                await DebugProgram();
-                continue;
-            }
-            await Monitor(cmd);
         }
         term.writeln("BYE...");
     })();
+    
+    async function AsmCommand() { 
+        var text = editor.getValue();
+        Assemble(text, function (s) { terminalUI.writeln(s) });
+    };
+    async function RunCommand() {
+        if (Loader(storage.files['a.out']) > 0)
+            await RSSB(mem, 5, function (addr) { return true; }, async function () { return await terminalUI.getChar(false) }, async function (s) { await terminalUI.putchars(s); });
+        terminalUI.writeln("Rssb Halted..\r\nReady.");
+    };
+    async function DebugCommand() {
+        if(Loader(storage.files['a.out']) > 0) {
+            await Debugger(5);
+        }
+    };
 </script>
 <script>
     //
