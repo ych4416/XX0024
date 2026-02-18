@@ -296,10 +296,11 @@
     //   MAINLINE
     //
         var monitorGrammer = ' \n\
-   cmd = quitcmd / asmcmd / runcmd / dbgcmd \n\
+   cmd = quitcmd / asmcmd / runcmd / dbgcmd / exmcmd \n\
    asmcmd = "asm" eol { return AsmCommand; }\n\
    runcmd = "run" eol { return RunCommand; }\n\
    dbgcmd = "dbg" eol { return DebugCommand; }\n\
+   exmcmd = "exm" dlims parm:$([0-9,])* eol {return async function() { await Examine(parm);}}\n\
    quitcmd = "quit" eol {window.alert("OK to quit"); return function(){}; }\n\
    dlim = $[ ,\t] \n\
    dlims = $[ ,\t]+ \n\
@@ -328,7 +329,9 @@
             await terminalUI.write("> ");
             cmd = await terminalUI.getLine();
             var result = ParseIt(cmd,cllParser,"cmd");
-            await result();
+            try {
+                await result();
+            } catch(e) {terminalUI.writeln("UNKNOWN COMMAND: "+cmd)};
             if (cmd === "quit\r") break;
         }
         term.writeln("BYE...");
@@ -336,7 +339,11 @@
     
     async function AsmCommand() { 
         var text = editor.getValue();
-        Assemble(text, function (s) { terminalUI.writeln(s) });
+        var objcode = Assemble(text, function (s) { terminalUI.writeln(s) });
+        if(typeof(objcode) ==="string") {
+            storage.files['a.out'] = objcode;
+            ResetMenu();
+        }
     };
     async function RunCommand() {
         if (Loader(storage.files['a.out']) > 0)

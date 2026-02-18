@@ -1,0 +1,40 @@
+#include BASIC.inc
+;
+        MEMORY  1024
+        ORG     5
+START   MOVEM    SS,IDX
+LOOP    INC     IDX
+        JCMP    SS,LIMIT,V1,V1,V2
+V1      VJMP    SS,NVEC,VOB,VEC
+V2      HALT
+VOB     MOVEM   COB,STRS
+        JMP     PUTLINE
+V00     MOVEM   C00,STRS
+        JMP     PUTLINE
+V01     MOVEM   C01,STRS
+        JMP     PUTLINE
+V02     MOVEM   C02,STRS
+        JMP     PUTLINE
+PUTLINE MOVEM   STRSADR,CURSOR
+LOOPP   LINDR   CURSOR,WORK
+        JCMP    WORK,ZERO,LOOP,LOOP,HW1
+HW1     PUTCH   WORK
+        INC     CURSOR
+        JMP     LOOPP
+CURSOR  DS      1
+WORK    DS      1
+STRSADR DC      STRS
+STRS    DS      1
+        DC      '\r\n\0'  
+SS      DC      -2
+LIMIT   DC      4
+IDX     DS      1
+NVEC    DC      3
+VEC     DC      V00
+        DC      V01
+        DC      V02
+COB     DC      'X'
+C00     DC      '0'
+C01     DC      '1'
+C02     DC      '2'
+;       END

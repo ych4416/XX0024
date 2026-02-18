@@ -67,7 +67,7 @@ MINUS1  DC      -1          ; (ALWAYS SKIPPED)
 HALT    DEFMACRO
         RSSB    ACC         ; HALTING
 HALT0   RSSB    HALT0+2
-        RSSB    PC
+        RSSB    IP
         DC      HALT0
         ENDMACRO
 ;
@@ -79,8 +79,8 @@ OFFST   DC      -(JP0+1)    ; ALWAYS SKIPPED, USING FOR OFFSET CONST
         RSSB    ACC
         RSSB    DST
         RSSB    WK1         ; ACC=WK1=OFFSET(=JP0+1)-DST
-JP0     RSSB    PC          ; BACKWARD JUMP (PC=PC-ACC OFFSET>=DST)
-        RSSB    PC          ; FORWARD JUMP (PC=PC-ACC(<0))
+JP0     RSSB    IP          ; BACKWARD JUMP (IP=IP-ACC OFFSET>=DST)
+        RSSB    IP          ; FORWARD JUMP (IP=IP-ACC(<0))
 WK1     DS      1
         ENDMACRO
 ;
@@ -88,9 +88,9 @@ WK1     DS      1
 JMP     DEFMACRO    DST     ; JUMP TO DST
         RSSB        ACC
         RSSB        RDST
-JMP0    RSSB        PC
-        RSSB        PC
-RDST    DC          JMP0>DST?(JMP0-DST+1):(JMP0+2-DST)
+JMPB    RSSB        IP
+JMPF    RSSB        IP
+RDST    DC          JMPB>DST?(JMPB-DST+1):(JMPF-DST+1)
         ENDMACRO
 ;
 JNEG    DEFMACRO    TGT,DST     ; JUMP TO DST IF (TGT)<0
@@ -101,10 +101,23 @@ JNEG    DEFMACRO    TGT,DST     ; JUMP TO DST IF (TGT)<0
         RSSB        ZERO
         RSSB        RPASS
         RSSB        ACC
-JNEG0   RSSB        PC
+JNEG0   RSSB        IP
         JMP         DST
 RPASS   DC          JNEG0-JNEG1+1
 JNEG1   RSSB        ACC
+        ENDMACRO
+;
+VJMP    DEFMACRO    X,N,OB,VEC
+        JCMP        N,ZERO,OB,OB,L1
+L1      JCMP        X,ZERO,OB,L2,L2
+L2      JCMP        X,N,L3,OB,OB
+L3      MOVEM       CVEC,DST
+        ACCM        DST,X
+        LINDR       DST,VDST
+        JPIND       VDST
+CVEC    DC          VEC
+DST     DS          1
+VDST    DS          1
         ENDMACRO
 ;
 ACCM    DEFMACRO    TGT,VAL ; (TGT)+=(VAL)
